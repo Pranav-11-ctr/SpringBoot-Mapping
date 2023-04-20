@@ -1,0 +1,186 @@
+package com.example.onetoonemapping.entities;
+
+import java.util.List;
+import java.util.Set;
+
+import javax.persistence.CascadeType;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
+import javax.persistence.Table;
+import javax.transaction.Transactional;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Transactional
+@Data
+@Table(name="Employee_Details")
+public class Employee {
+	
+	@Id
+	@GeneratedValue(strategy = GenerationType.AUTO)
+	@Column(name="emp_id")
+	private Long empId;
+	private String empName;
+	private Integer empAge;
+	
+	//This for one to one mapping 
+	
+//	//Unidirectional Example
+//	
+//	//This line will create a foreign key column inside Employee table
+//	//and the default name is address_add_id 
+//	@OneToOne(cascade = CascadeType.ALL)
+//	@JoinColumn(name="fk_add_id")
+//	private Address address;
+//	
+//	//This is the owning side because it contains fk
+	
+	
+	
+	
+	
+	
+	
+	
+	//One to many
+	@OneToMany(cascade = CascadeType.ALL)
+	@JoinColumn(name="fk_add_id",referencedColumnName ="emp_id" )
+	private List<Address> address;
+
+}
+
+
+
+
+
+package com.example.onetoonemapping.entities;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToOne;
+import javax.persistence.Table;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name="address")
+public class Address {
+	
+	
+	@Id
+	@GeneratedValue(strategy = GenerationType.AUTO)
+	@Column(name="add_id")
+	private Long addressId;
+	private String city;
+	private String addressType;
+	
+	//One toOne
+	
+	
+//	//for Bidirectional No change in Employee side
+//	//only add mapped by here
+//
+//	@OneToOne(mappedBy = "address")
+//	private Employee employee;
+	
+	
+	
+	
+	
+	
+	//One to many unidirectional
+	//nothing to write here  not even private Employee employee also
+	
+	
+
+}
+
+
+
+
+package com.example.onetoonemapping.repositories;
+
+
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+
+import com.example.onetoonemapping.entities.Employee;
+
+
+public interface EmployeeRepository extends JpaRepository<Employee, Long>{
+
+
+
+}
+
+
+
+
+package com.example.onetoonemapping.repositories;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.example.onetoonemapping.entities.Address;
+
+public interface AddressRepository extends JpaRepository<Address,Long>{
+
+}
+
+
+
+
+
+package com.example.onetoonemapping.controller;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.example.onetoonemapping.entities.Employee;
+import com.example.onetoonemapping.repositories.EmployeeRepository;
+
+@RestController
+public class EmployeeController {
+	
+	@Autowired
+	private EmployeeRepository employeeRepository;
+	
+	@PostMapping("/saveEmployees")
+    public ResponseEntity<String> saveEmployees(@RequestBody List<Employee> empData) {
+        employeeRepository.saveAll(empData);
+        return ResponseEntity.ok("Data saved");
+    }
+
+}
