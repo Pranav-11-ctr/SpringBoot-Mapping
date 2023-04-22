@@ -1,0 +1,255 @@
+package com.example.manytomany.entities;
+
+import java.util.HashSet;
+import java.util.Set;
+
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+public class Employee {
+	
+	
+	@Id
+	@GeneratedValue(strategy = GenerationType.AUTO)
+	private Long empId;
+	private String empName;
+	
+	@ManyToMany
+	@JoinTable(name="employee_project",
+	joinColumns = @JoinColumn(name="employee_id"),
+	inverseJoinColumns = @JoinColumn(name="project_id"))
+	private Set<Project> assignedProject=new HashSet<>();
+
+}
+
+
+
+package com.example.manytomany.repositories;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.example.manytomany.entities.Employee;
+
+public interface EmployeeRepositories extends JpaRepository<Employee,Long>{
+
+}
+
+
+
+
+
+
+
+package com.example.manytomany.controller;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.example.manytomany.entities.Employee;
+import com.example.manytomany.entities.Project;
+import com.example.manytomany.repositories.EmployeeRepositories;
+import com.example.manytomany.repositories.ProjectRepositories;
+
+@RestController
+@RequestMapping("/employee")
+public class EmployeeController {
+	
+	@Autowired
+	private EmployeeRepositories employeeRepositories;
+	
+	@Autowired
+	private ProjectRepositories projectRepositories;
+	
+	@PostMapping
+	public ResponseEntity<Employee> saveEmployee(@RequestBody Employee employee)
+	{
+		
+		return ResponseEntity.ok(employeeRepositories.save(employee));
+	}
+	
+	@GetMapping
+	public ResponseEntity<List<Employee>> getAllEmployee()
+	{
+		return ResponseEntity.ok(employeeRepositories.findAll());
+	}
+	
+	@GetMapping("/{empId}")
+	public ResponseEntity<Employee> getEmployeeId(@PathVariable  Long empId )
+	{
+		return ResponseEntity.ok(employeeRepositories.findById(empId).get());
+	}
+	
+	@DeleteMapping("/{empId}")
+	public ResponseEntity deleteEmployee(@PathVariable Long empId)
+	{
+		employeeRepositories.deleteById(empId);
+		return new ResponseEntity(HttpStatus.OK);
+	}
+	
+	
+	  @PutMapping("/{empId}/project/{projectId}")
+	    public Employee assignProjectToEmployee(
+	            @PathVariable Long empId,
+	            @PathVariable Long projectId
+	    ){
+	        Set<Project> projectSet=null;
+	        Employee employee=employeeRepositories.findById(empId).get();
+	        Project project= projectRepositories.findById(projectId).get();
+	        projectSet=employee.getAssignedProject();
+	        projectSet.add(project);
+	        employee.setAssignedProject(projectSet);
+	        return employeeRepositories.save(employee);
+	    } 
+
+}
+
+
+
+
+
+//Project
+
+package com.example.manytomany.entities;
+
+import java.util.HashSet;
+import java.util.Set;
+
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.ManyToMany;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+public class Project {
+	
+	@Id
+	@GeneratedValue(strategy = GenerationType.AUTO)
+	private Long projectId;
+	private String projectName;
+	
+	//used to not fixed in loop
+	@JsonIgnore
+	@ManyToMany(mappedBy = "assignedProject")
+	private Set<Employee> employeeSet=new HashSet<>();
+	
+
+}
+
+
+package com.example.manytomany.repositories;
+
+import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.example.manytomany.entities.Project;
+
+public interface ProjectRepositories extends JpaRepository<Project, Long> {
+	
+	List<Project> findAllByProjectId(long projectId);
+
+}
+
+
+package com.example.manytomany.controller;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.example.manytomany.entities.Project;
+import com.example.manytomany.repositories.ProjectRepositories;
+
+@RestController
+@RequestMapping("/project")
+public class ProjectController {
+	
+	@Autowired
+	private ProjectRepositories projectRepositories;
+	
+	@PostMapping("/save")
+    public ResponseEntity createProject(@RequestBody Project projectObj) {
+		projectRepositories.save(projectObj);
+        return new ResponseEntity(HttpStatus.CREATED);
+    }
+
+    @GetMapping(value = {"/getProjects", "/{projectId}"})
+    public List<Project> getProjects(@PathVariable(required = false) Long projectId) {
+    	 if (null != projectId) {
+             return projectRepositories.findAllByProjectId(projectId);
+         } else {
+             return projectRepositories.findAll();
+         }
+        
+    }
+    
+    @GetMapping
+    public ResponseEntity<List<Project>> getAllProject()
+    {
+    	return ResponseEntity.ok(projectRepositories.findAll());
+    }
+//    
+//    @GetMapping("/{projectId}")
+//    public ResponseEntity<Project> getProjectWithProjectId(@PathVariable Long projectId)
+//    {
+//    	return ResponseEntity.ok(projectRepositories.findById(projectId).get());
+//    }
+
+    @DeleteMapping("/delete/{projectId}")
+    public ResponseEntity removeProject(@PathVariable Long projectId) {
+    	projectRepositories.deleteById(projectId);
+        return new ResponseEntity(HttpStatus.OK);
+    }
+
+}
